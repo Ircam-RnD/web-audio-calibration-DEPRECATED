@@ -8,29 +8,43 @@ var clientParams = {
   gain : 0, // dB
 };
 
+var clickParams = {
+  duration : 0.05, // milliseconds (2 samples at 44100 Hz)
+  gain : -10 // dB (for the noise part)
+};
+
 var audioContext;
 var clickBuffer;
 var masterGain;
 
 /** @private
     @return {number} A linear gain value (1e-3 for -60dB*/
-var dBToLin = function(dBValue) {
-  return Math.pow(10, dBValue / 20);
+var dBToPow = function(dBValue) {
+  return Math.pow(10, dBValue / 10);
 };
 
-
-function generateClickBuffer(context) {
+/** 
+ * @param duration in milliseconds (minimum will be 2 samples anyway)
+ */
+function generateClickBuffer(duration) {
   var channels = 1;
-  // duration ignored for BufferSource.start() (Safari 7, Firefox 34)
-  // var length = context.sampleRate; // 1 second (max size)
-  var length = 2; 
-  var buffer = context.createBuffer(channels, length, context.sampleRate);
+  
+  var length = Math.max(2, 0.001 * duration * audioContext.sampleRate);
+  var buffer = audioContext.createBuffer(channels, length,
+                                         audioContext.sampleRate);
   // buffer.copyToChannel(array, 0); // error on Chrome?
   var data = buffer.getChannelData(0);
-  for(var i = 0; i < length; i++) {
-    data[i] = (i + 1) & 1;
+
+  // first 2 samples are actual click, the rest is fixed noise
+  data[0] = 1;
+  data[1] = -1;
+
+  // TODO: provide a seed
+  var g = dBToPow(clickParams.gain);
+  for(var i = 2; i < length; i++) {
+    data[i] = g * (Math.random() * 2 - 1);
   }
-  return buffer;
+  clickBuffer = buffer;
 }
 
 function makeAudioContext() {
@@ -45,10 +59,10 @@ function makeAudioContext() {
   }
 
   masterGain = audioContext.createGain();  
-  masterGain.gain.value = dBToLin(clientParams.gain);
+  masterGain.gain.value = dBToPow(clientParams.gain);
   masterGain.connect(audioContext.destination);
 
-  clickBuffer = generateClickBuffer(audioContext);
+  generateClickBuffer(clickParams.duration);
 }
 
 function idSetValue(id, increment) {
@@ -73,7 +87,7 @@ function updateClientParams() {
   }    
   socket.emit('client-params', clientParams);
   
-  masterGain.gain.value =  dBToLin(clientParams.gain);
+  masterGain.gain.value = dBToPow(clientParams.gain);
 }
 
 function updateClientDisplay() {
@@ -103,13 +117,23 @@ function init() {
   });
 
   socket.on('click', function(params) {
+    if(clickParams.duration !== params.duration) {
+      clickParams.duration = params.duration;
+      generateClickBuffer(clickParams.duration);
+    }
+    
     if(clientParams.active) {
       var now = audioContext.currentTime;
       console.log('click');
-
+      
+      var clickGain = audioContext.createGain();  
+      clickGain.gain.value = dBToPow(params.gain);
+      clickGain.connect(masterGain);
+      
       bufferSource = audioContext.createBufferSource();
       bufferSource.buffer = clickBuffer;
-      bufferSource.connect(masterGain);
+      bufferSource.connect(clickGain);
+      
       // duration parameter ignored? on Safari (7.1.2), Firefox (34)
       // bufferSource.start(now +
       //                    (params.delay - clientParams.delay) * 0.001,

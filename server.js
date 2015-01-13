@@ -26,6 +26,7 @@ app.get('/ctl', function(req, res) {
 var serverParams = {
   active : true, // run by default
   delay : 100, // millisecond
+  gain : 0, // dB
   period : 1000, // milliseconds
   number : -1, // -1 for infinite, > 0 for finite count
   duration : 0.05 // milliseconds (0.05 ms is 2 samples at 44100 Hz)
@@ -68,8 +69,10 @@ io.sockets.on('connection', function (socket) {
 function click() {
   if(serverParams.active && serverParams.number !== 0) {
     serverParams.number --;
+     // broadcast
     io.emit('click', {delay : serverParams.delay,
-                      duration : serverParams.duration}); // broadcast
+                      gain : serverParams.gain,
+                      duration : serverParams.duration});
   }
 
   if(serverParams.active)
