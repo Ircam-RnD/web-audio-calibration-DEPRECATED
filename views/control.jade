@@ -1,0 +1,26 @@
+doctype
+html
+  head
+    title Calibration Control
+  body
+    script(src="/socket.io/socket.io.js")
+    script(src="control.js")
+    p
+      | Active 
+      input(id="active", onchange="updateServerParams()", type="checkbox", value="0")
+    p
+      | Delay 
+      input(id="delay", onchange="updateServerParams()", type="number", value="0", min="0", max="10000", step="10")
+      |  milliseconds
+   p
+      | Period 
+      input(id="period", onchange="updateServerParams()", type="number", value="0", min="0", max="10000", step="10")
+      |  milliseconds
+   p
+      | Number 
+      input(id="number", onchange="updateServerParams()", type="number", value="0", min="0", max="100", step="1")
+      |  of occurrences
+   p
+      | Duration 
+      input(id="duration", onchange="updateServerParams()", type="number", value="0", min="0", max="1000", step="10")
+      |  milliseconds

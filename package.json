@@ -1,0 +1,14 @@
+{
+  "name": "audio-calibration",
+  "version": "0.1.1",
+  "description": "audio calibration (gain and delay)",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "*",
+    "jade": "*",
+    "platform": "*",
+    "socket.io": "*"
+  }
+}
