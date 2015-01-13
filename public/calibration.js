@@ -51,6 +51,17 @@ function makeAudioContext() {
   clickBuffer = generateClickBuffer(audioContext);
 }
 
+function idSetValue(id, increment) {
+  var element = document.getElementById(id);
+  element.value = Number(increment); 
+  updateClientParams();
+}
+
+function idIncrementValue(id, increment) {
+  var element = document.getElementById(id);
+  element.value = Number(element.value) + Number(increment); 
+  updateClientParams();
+}
 
 function updateClientParams() {
   for(var key in clientParams) {

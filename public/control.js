@@ -2,6 +2,18 @@ var socket = io.connect();
 
 var serverParams = {};
 
+function idSetValue(id, increment) {
+  var element = document.getElementById(id);
+  element.value = Number(increment); 
+  updateServerParams();
+}
+
+function idIncrementValue(id, increment) {
+  var element = document.getElementById(id);
+  element.value = Number(element.value) + Number(increment); 
+  updateServerParams();
+}
+
 // on connect, local update (value and display) 
 socket.on('server-params', function(params) {
   for(var key in params) {
