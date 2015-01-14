@@ -3,7 +3,7 @@ var socket = io.connect();
 // parameters
 // TODO: initialise from local storage, or server data base
 var clientParams = {
-  active : true, // run by default
+  active : false, // do not run by default (manual activation is needed for iOS)
   delay : 0, // milliseconds
   gain : 0, // dB
 };
@@ -78,9 +78,12 @@ function idIncrementValue(id, increment) {
 }
 
 function updateClientParams() {
+  var wasActive = clientParams.active;
+  var isActive = false;
   for(var key in clientParams) {
     if(key === 'active') {
-      clientParams[key] = document.getElementById(key).checked;      
+      clientParams[key] = document.getElementById(key).checked;
+      isActive = clientParams.active;
     } else if(key !== 'undefined') {
       clientParams[key] = document.getElementById(key).value;
     }
@@ -88,6 +91,11 @@ function updateClientParams() {
   socket.emit('client-params', clientParams);
   
   masterGain.gain.value = dBToPow(clientParams.gain);
+
+  // click on activation (user-triggered sound is mandatory to init iOS web audio)
+  if(isActive && ! wasActive) {
+    playClick({gain : -10, delay : 0, duration : 100});
+  }
 }
 
 function updateClientDisplay() {
@@ -98,6 +106,32 @@ function updateClientDisplay() {
       document.getElementById(key).value = clientParams[key];
     }
   }    
+}
+
+function playClick(params) {
+  if(clickParams.duration !== params.duration) {
+    clickParams.duration = params.duration;
+    generateClickBuffer(clickParams.duration);
+  }
+  
+  var now = audioContext.currentTime;
+  console.log('click');
+  
+  var clickGain = audioContext.createGain();  
+  clickGain.gain.value = dBToPow(params.gain);
+  clickGain.connect(masterGain);
+  
+  bufferSource = audioContext.createBufferSource();
+  bufferSource.buffer = clickBuffer;
+  bufferSource.connect(clickGain);
+
+  // duration parameter ignored? on Safari (7.1.2), Firefox (34)
+  // bufferSource.start(now +
+  //                    (params.delay - clientParams.delay) * 0.001,
+  //                    0,
+  //                    params.duration * 0.001);
+  bufferSource.start(now +
+                     (params.delay - clientParams.delay) * 0.001);
 }
 
 function init() {
@@ -117,30 +151,8 @@ function init() {
   });
 
   socket.on('click', function(params) {
-    if(clickParams.duration !== params.duration) {
-      clickParams.duration = params.duration;
-      generateClickBuffer(clickParams.duration);
-    }
-    
     if(clientParams.active) {
-      var now = audioContext.currentTime;
-      console.log('click');
-      
-      var clickGain = audioContext.createGain();  
-      clickGain.gain.value = dBToPow(params.gain);
-      clickGain.connect(masterGain);
-      
-      bufferSource = audioContext.createBufferSource();
-      bufferSource.buffer = clickBuffer;
-      bufferSource.connect(clickGain);
-      
-      // duration parameter ignored? on Safari (7.1.2), Firefox (34)
-      // bufferSource.start(now +
-      //                    (params.delay - clientParams.delay) * 0.001,
-      //                    0,
-      //                    params.duration * 0.001);
-      bufferSource.start(now +
-                         (params.delay - clientParams.delay) * 0.001);
+      playClick(params);
     }
   });
 
