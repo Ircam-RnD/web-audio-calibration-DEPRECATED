@@ -78,10 +78,6 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('client-params-store', function(params) {
-    for(var key in params) {
-      console.log(key + ': ' + params[key]);
-    }
-
     if(typeof params.userAgent !== 'undefined' &&
        typeof params.delay !== 'undefined' &&
        typeof params.gain !== 'undefined')
