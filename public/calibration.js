@@ -1,5 +1,16 @@
 var socket = io.connect();
 
+var localStoragePrefix = 'web-audio-calibration.';
+var localStorageEnabled = typeof localStorage !== 'undefined';
+if(localStorageEnabled) {
+  try {
+    localStorage[localStoragePrefix + 'storage-enabled'] = true;
+    localStorage.removeItem(localStoragePrefix + 'storage-enabled');
+  } catch (error) {
+    localStorageEnabled = false;
+  }
+}
+
 // parameters
 // TODO: initialise from local storage, or server data base
 var clientParams = {
@@ -84,8 +95,17 @@ function updateClientParams() {
     if(key === 'active') {
       clientParams[key] = document.getElementById(key).checked;
       isActive = clientParams.active;
+      // active status is not stored
     } else if(key !== 'undefined') {
       clientParams[key] = document.getElementById(key).value;
+      if(localStorageEnabled) {
+        try {
+          localStorage[localStoragePrefix + key] = clientParams[key];
+        } catch (error) {
+          console.log(error.message);
+          localStorageEnabled = false;
+        }
+      }
     }
   }    
   socket.emit('client-params', clientParams);
@@ -136,6 +156,16 @@ function playClick(params) {
 
 function init() {
   makeAudioContext();
+
+  // retrieve from local storage
+  if(localStorageEnabled) {
+    for(var key in clientParams) {
+      if(typeof localStorage[localStoragePrefix + key] !== 'undefined') {
+        clientParams[key] = localStorage[localStoragePrefix + key];
+      }
+    }
+  }
+
   updateClientDisplay();
   
   // on connect, local update (value and display) 
