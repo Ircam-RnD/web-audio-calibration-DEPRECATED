@@ -11,8 +11,9 @@ if(localStorageEnabled) {
   }
 }
 
-// parameters
-// TODO: initialise from local storage, or server data base
+// default parameters
+// restore local storage, if it exists, or
+// use values from server, with the same user agent 
 var clientParams = {
   active : false, // do not run by default (manual activation is needed for iOS)
   delay : 0, // milliseconds
@@ -107,8 +108,11 @@ function updateClientParams() {
         }
       }
     }
-  }    
-  socket.emit('client-params', clientParams);
+  }
+  
+  socket.emit('client-params-store', {userAgent : platform.ua,
+                                      delay : clientParams.delay,
+                                      gain : clientParams.gain});
   
   masterGain.gain.value = dBToPow(clientParams.gain);
 
@@ -158,27 +162,31 @@ function init() {
   makeAudioContext();
 
   // retrieve from local storage
+  var localStorageUsed = false;
   if(localStorageEnabled) {
     for(var key in clientParams) {
       if(typeof localStorage[localStoragePrefix + key] !== 'undefined') {
+        localStorageUsed = true;
         clientParams[key] = localStorage[localStoragePrefix + key];
       }
     }
   }
 
+  // update anyway (at least for page reload)
   updateClientDisplay();
   
-  // on connect, local update (value and display) 
   socket.on('client-params', function(params) {
     for(var key in params) {
-      if(key === 'active') {
-        document.getElementById(key).checked = params[key];      
-      } else {
-        document.getElementById(key).value = params[key];
+      if(typeof params[key] !== 'undefined') {
+        clientParams[key] = params[key];
       }
-      clientParams[key] = params[key];
     }
+    updateClientDisplay();
   });
+
+  if(! localStorageUsed) {
+    socket.emit('client-params-request', platform.ua);
+  }
 
   socket.on('click', function(params) {
     if(clientParams.active) {

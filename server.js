@@ -32,12 +32,25 @@ var serverParams = {
   duration : 0.05 // milliseconds (0.05 ms is 2 samples at 44100 Hz)
 };
 
+var calibrationFile = __dirname + '/data/web-audio-calibration.json';
+var calibrationFileEncoding = 'utf8';
+var calibrationData = {};
+
+fs.readFile(calibrationFile, calibrationFileEncoding,
+                function(error, data) {
+                  if(error) {
+                    console.log('Error while reading calibration file: ' +
+                                error);
+                  } else {
+                    calibrationData = JSON.parse(data);
+                  }
+            });
+
 var clickTimeout; // handle to clear timeout
 
 io.sockets.on('connection', function (socket) {
   // brodacst to initialise controls
   io.emit('server-params', serverParams);
-  // io.emit('client-params', clientParams);
 
   socket.on('server-params', function(params) {
     var serverParamsChanged = false;
@@ -57,13 +70,41 @@ io.sockets.on('connection', function (socket) {
       click();
     }
 
+    // re-broadcast for multiple control clients
     if(serverParamsChanged) {
       io.emit('server-params', serverParams);
     }
 
   });
+
+  socket.on('client-params-store', function(params) {
+    for(var key in params) {
+      console.log(key + ': ' + params[key]);
+    }
+
+    if(typeof params.userAgent !== 'undefined' &&
+       typeof params.delay !== 'undefined' &&
+       typeof params.gain !== 'undefined')
+    {
+      calibrationData[params.userAgent] = {delay : params.delay,
+                                           gain : params.gain};
+      fs.writeFile(calibrationFile, JSON.stringify(calibrationData));
+    }
+  });
+
+  socket.on('client-params-request', function(userAgent) {
+    if(typeof calibrationData !== 'undefined') {
+      var result = calibrationData[userAgent];
+      if(typeof result !== 'undefined' &&
+         typeof result.delay !== 'undefined' &&
+         typeof result.gain !== 'undefined') {
+        socket.emit('client-params', {delay : result.delay,
+                                      gain : result.gain});
+      }
+    }
+  });
   
-});
+}); // io.sockets.on('connection' ...
 
 
 function click() {
