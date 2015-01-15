@@ -32,15 +32,33 @@ var serverParams = {
   duration : 0.05 // milliseconds (0.05 ms is 2 samples at 44100 Hz)
 };
 
-var calibrationFile = __dirname + '/data/web-audio-calibration.json';
+var calibrationPath = __dirname + '/data';
+var calibrationFile = calibrationPath + '/' + 'web-audio-calibration.json';
 var calibrationFileEncoding = 'utf8';
 var calibrationData = {};
+
+try {
+  fs.mkdirSync(calibrationPath);
+    console.log('Creating data directory: ' + calibrationPath);
+} catch (error) {
+  if(error.code === 'EEXIST') {
+    console.log('Using existing data directory: ' + calibrationPath);
+  }
+  else {
+    console.log('Error creating data directory: ' + calibrationPath);
+  }
+}
 
 fs.readFile(calibrationFile, calibrationFileEncoding,
                 function(error, data) {
                   if(error) {
-                    console.log('Error while reading calibration file: ' +
-                                error);
+                    if(error.code === 'ENOENT') {
+                      console.log('Creating new calibration file: ' +
+                                  calibrationFile);
+                    } else {
+                      console.log('Error while reading calibration file: ' +
+                                  error);
+                    }
                   } else {
                     calibrationData = JSON.parse(data);
                   }
