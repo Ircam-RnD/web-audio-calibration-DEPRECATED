@@ -16,8 +16,8 @@ if(localStorageEnabled) {
 // use values from server, with the same user agent 
 var clientParams = {
   active : false, // do not run by default (manual activation is needed for iOS)
-  delay : 0, // milliseconds
-  gain : 0, // dB
+  delay : 0, // delay to compensate, in milliseconds
+  gain : 0, // gain to compensate, in dB (power)
 };
 
 var clickParams = {
@@ -71,7 +71,8 @@ function makeAudioContext() {
   }
 
   masterGain = audioContext.createGain();  
-  masterGain.gain.value = dBToPow(clientParams.gain);
+  // opposite to compensate client gain
+  masterGain.gain.value = dBToPow(-clientParams.gain);
   masterGain.connect(audioContext.destination);
 
   generateClickBuffer(clickParams.duration);
@@ -114,7 +115,8 @@ function updateClientParams() {
                                       delay : clientParams.delay,
                                       gain : clientParams.gain});
   
-  masterGain.gain.value = dBToPow(clientParams.gain);
+  // opposite to compensate client gain
+  masterGain.gain.value = dBToPow(-clientParams.gain);
 
   // click on activation (user-triggered sound is mandatory to init iOS web audio)
   if(isActive && ! wasActive) {
@@ -154,6 +156,8 @@ function playClick(params) {
   //                    (params.delay - clientParams.delay) * 0.001,
   //                    0,
   //                    params.duration * 0.001);
+
+  // compensate client delay
   bufferSource.start(now +
                      (params.delay - clientParams.delay) * 0.001);
 }
