@@ -30,7 +30,7 @@ var clickBuffer;
 var masterGain;
 
 /** @private
-    @return {number} A linear gain value (1e-3 for -60dB*/
+    @return {number} An exponential gain value (1e-6 for -60dB) */
 var dBToPow = function(dBValue) {
   return Math.pow(10, dBValue / 10);
 };
