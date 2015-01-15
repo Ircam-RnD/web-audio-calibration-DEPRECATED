@@ -115,7 +115,7 @@ function updateClientParams() {
         var key = params[p];
         if(typeof key != 'undefined') {
           clientParams[clientParams.output][key] =
-            document.getElementById(key).value;
+            Number(document.getElementById(key).value);
         }
       }
       if(localStorageEnabled) {
@@ -153,8 +153,10 @@ function updateClientDisplay() {
     var params = ['delay', 'gain'];
     for(var p in params) {
       var key = params[p];
-      document.getElementById(key).value =
-        clientParams[clientParams.output][key];
+      if(typeof params[p] !== 'undefined') {
+        document.getElementById(key).value =
+          clientParams[clientParams.output][key];
+      }
     }
   }    
 }
@@ -183,9 +185,10 @@ function playClick(params) {
   //                    params.duration * 0.001);
 
   // compensate client delay
-  bufferSource.start(Math.max(0,
-                              0.001 * (params.delay -
-                                       clientParams[clientParams.output].delay)));
+  bufferSource.start(now +
+                     Math.max(0, 0.001 *
+                              (params.delay -
+                               clientParams[clientParams.output].delay)));
 }
 
 function restoreFromLocalOrServer() {

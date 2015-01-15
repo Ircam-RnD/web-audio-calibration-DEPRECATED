@@ -42,7 +42,7 @@ function updateServerParams() {
       } else {
         changed == changed ||
           (serverParams[key] !== document.getElementById(key).value);
-        serverParams[key] = document.getElementById(key).value;
+        serverParams[key] = Number(document.getElementById(key).value);
       }
     }    
     socket.emit('server-params', serverParams);
