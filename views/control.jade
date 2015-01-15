@@ -12,49 +12,83 @@ html
     p
       | Delay 
       input(id="delay", onchange="updateServerParams()", type="number", value="0", min="0", max="10000", step="10")
-      |  milliseconds 
+      |  milliseconds
+      br
+      button(onclick="idIncrementValue('delay', -50)") -50 
+      | 
       button(onclick="idIncrementValue('delay', -10)") -10 
+      | 
       button(onclick="idSetValue('delay', 200)") =200 
+      | 
       button(onclick="idIncrementValue('delay', +10)") +10 
-   p
+      | 
+      button(onclick="idIncrementValue('delay', +50)") +50       
+      p
       | Gain 
       input(id="gain", onchange="updateServerParams()", type="number", value="0", min="-30", max="30", step="1")
       |  dB
+      br
       button(onclick="idIncrementValue('gain', -5)") -5 
+      | 
       button(onclick="idIncrementValue('gain', -1)") -1 
+      | 
       button(onclick="idSetValue('gain', 0)") =0 
+      | 
       button(onclick="idIncrementValue('gain', +1)") +1 
+      | 
       button(onclick="idIncrementValue('gain', +5)") +5       
    p
       | Period 
       input(id="period", onchange="updateServerParams()", type="number", value="0", min="0", max="10000", step="10")
       |  milliseconds
+      br
       button(onclick="idIncrementValue('period', -100)") -100 
+      | 
       button(onclick="idIncrementValue('period', -10)") -10 
+      | 
       button(onclick="idSetValue('period', 1000)") =1000 
+      | 
       button(onclick="idIncrementValue('period', +10)") +10 
+      | 
       button(onclick="idIncrementValue('period', +100)") +100 
    p
       | Number 
       input(id="number", onchange="updateServerParams()", type="number", value="0", min="0", max="100", step="1")
       |  of occurrences
+      br
       button(onclick="idIncrementValue('number', -10)") -10 
+      | 
       button(onclick="idIncrementValue('number', -1)") -1 
+      | 
       button(onclick="idSetValue('number', -1)") =-1 
+      | 
       button(onclick="idSetValue('number', 10)") =10 
+      | 
       button(onclick="idIncrementValue('number', +1)") +1 
+      | 
       button(onclick="idIncrementValue('number', +10)") +10 
    p
       | Duration 
       input(id="duration", onchange="updateServerParams()", type="number", value="0", min="0", max="1000", step="0.05")
       |  milliseconds
+      br
       button(onclick="idIncrementValue('duration', -100)") -100 
+      | 
       button(onclick="idIncrementValue('duration', -10)") -10 
+      | 
       button(onclick="idIncrementValue('duration', -1)") -1 
+      | 
       button(onclick="idIncrementValue('duration', -0.05)") -0.05 
+      | 
       button(onclick="idSetValue('duration', 0.05)") =0.05 
+      br
       button(onclick="idSetValue('duration', 100)") =100 
+      | 
       button(onclick="idIncrementValue('duration', +0.05)") +0.05 
+      | 
       button(onclick="idIncrementValue('duration', +1)") +1 
+      | 
       button(onclick="idIncrementValue('duration', +10)") +10 
+      | 
       button(onclick="idIncrementValue('duration', +100)") +100 
+

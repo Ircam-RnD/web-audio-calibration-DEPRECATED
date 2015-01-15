@@ -15,17 +15,32 @@ html
       | Delay 
       input(id="delay", onchange="updateClientParams()", type="number", value="0", min="0", max="1000", step="10")
       |  milliseconds
+      br
+      button(onclick="idIncrementValue('delay', -50)") -50
+      | 
       button(onclick="idIncrementValue('delay', -10)") -10 
+      | 
       button(onclick="idIncrementValue('delay', -1)") -1 
+      | 
       button(onclick="idSetValue('delay', 0)") =0 
+      | 
       button(onclick="idIncrementValue('delay', +1)") +1 
+      | 
       button(onclick="idIncrementValue('delay', +10)") +10 
+      | 
+      button(onclick="idIncrementValue('delay', +50)") +50 
    p
       | Gain 
       input(id="gain", onchange="updateClientParams()", type="number", value="0", min="-30", max="30", step="1")
       |  dB
+      br
       button(onclick="idIncrementValue('gain', -5)") -5 
+      | 
       button(onclick="idIncrementValue('gain', -1)") -1 
+      | 
       button(onclick="idSetValue('gain', 0)") =0 
+      | 
       button(onclick="idIncrementValue('gain', +1)") +1 
+      | 
       button(onclick="idIncrementValue('gain', +5)") +5 
+
