@@ -77,9 +77,9 @@ function makeAudioContext() {
   generateClickBuffer(clickParams.duration);
 }
 
-function idSetValue(id, increment) {
+function idSetValue(id, value) {
   var element = document.getElementById(id);
-  element.value = Number(increment); 
+  element.value = Number(value); 
   updateClientParams();
 }
 
