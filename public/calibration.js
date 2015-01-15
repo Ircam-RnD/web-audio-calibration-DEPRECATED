@@ -183,8 +183,9 @@ function playClick(params) {
   //                    params.duration * 0.001);
 
   // compensate client delay
-  bufferSource.start(0.001 * (params.delay -
-                              clientParams[clientParams.output].delay));
+  bufferSource.start(Math.max(0,
+                              0.001 * (params.delay -
+                                       clientParams[clientParams.output].delay)));
 }
 
 function restoreFromLocalOrServer() {
