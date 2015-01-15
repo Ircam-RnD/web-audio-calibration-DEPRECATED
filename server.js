@@ -25,7 +25,7 @@ app.get('/ctl', function(req, res) {
 // public parameters
 var serverParams = {
   active : true, // run by default
-  delay : 100, // millisecond
+  delay : 200, // millisecond
   gain : 0, // dB
   period : 1000, // milliseconds
   number : -1, // -1 for infinite, > 0 for finite count
