@@ -102,37 +102,18 @@ function updateClientParams() {
   // set output first, as it is used to dispatch the data
   if(typeof clientParams !== 'undefined') {
     // output changed
-    if(clientParams.output !== document.getElementById('output').value) {
-      clientParams.output = document.getElementById('output').value;
-      restoreFromLocalOrServer();
-    }
-    else {
-      clientParams.active = document.getElementById('active').checked;
-      isActive = clientParams.active;
+    clientParams.output = document.getElementById('output').value;
+    clientParams.active = document.getElementById('active').checked;
+    isActive = clientParams.active;
     
-      var params = ['delay', 'gain'];
-      for(var p in params) {
-        var key = params[p];
-        if(typeof key != 'undefined') {
-          clientParams[clientParams.output][key] =
-            Number(document.getElementById(key).value);
-        }
+    var params = ['delay', 'gain'];
+    for(var p in params) {
+      var key = params[p];
+      if(typeof key != 'undefined') {
+        clientParams[clientParams.output][key] =
+          Number(document.getElementById(key).value);
       }
-      if(localStorageEnabled) {
-        try {
-          localStorage[localStoragePrefix + clientParams.output] =
-            JSON.stringify(clientParams[clientParams.output]);
-        } catch (error) {
-          console.log(error.message);
-          localStorageEnabled = false;
-        }
-      }
-      
     }
-    
-    socket.emit('client-params-store', {userAgent : platform.ua,
-                                        internal : clientParams.internal,
-                                        external : clientParams.external});
   }
   
   // opposite to compensate client gain
@@ -189,6 +170,33 @@ function playClick(params) {
                      Math.max(0, 0.001 *
                               (params.delay -
                                clientParams[clientParams.output].delay)));
+}
+
+function validate() {
+  // TODO: validate for only one output
+  storeLocalAndServer();
+}
+
+function storeLocalAndServer() {
+  if(typeof clientParams !== 'undefined') {
+      if(localStorageEnabled) {
+        try {
+          localStorage[localStoragePrefix + clientParams.output] =
+            JSON.stringify(clientParams[clientParams.output]);
+        } catch (error) {
+          console.log(error.message);
+          localStorageEnabled = false;
+        }
+      }
+      socket.emit('client-params-store',
+                  {userAgent : platform.ua,
+                   internal : clientParams.internal,
+                   external : clientParams.external});
+  }
+}
+
+function restore() {
+  restoreFromLocalOrServer();
 }
 
 function restoreFromLocalOrServer() {

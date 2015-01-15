@@ -13,11 +13,6 @@ html
       label
         | Active 
         input(id="active", onchange="updateClientParams()", type="checkbox", value="0")
-      | 
-      select(id="output", onchange="updateClientParams()")
-        option internal
-        option external
-      |  speaker
     p
       | Delay 
       input(id="delay", onchange="updateClientParams()", type="number", value="0", min="0", max="1000", step="10")
@@ -50,4 +45,15 @@ html
       button(onclick="idIncrementValue('gain', +1)") +1 
       | 
       button(onclick="idIncrementValue('gain', +5)") +5 
-
+    p
+      button(onclick="validate()") Validate calibration
+      |  for 
+      select(id="output", onchange="updateClientParams()")
+        option internal
+        option external
+      |  speaker
+      br
+      br
+      | (or  
+      button(onclick="restore()") retrieve
+      |  it)
