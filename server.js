@@ -97,11 +97,15 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('client-params-store', function(params) {
     if(typeof params.userAgent !== 'undefined' &&
-       typeof params.delay !== 'undefined' &&
-       typeof params.gain !== 'undefined')
+       typeof params.internal !== 'undefined' &&
+       typeof params.external !== 'undefined')
     {
-      calibrationData[params.userAgent] = {delay : params.delay,
-                                           gain : params.gain};
+      if(typeof calibrationData[params.userAgent] === 'undefined') {
+        calibrationData[params.userAgent] = {};
+      }
+
+      calibrationData[params.userAgent].internal = params.internal;
+      calibrationData[params.userAgent].external = params.external;
       fs.writeFile(calibrationFile, JSON.stringify(calibrationData));
     }
   });
@@ -109,11 +113,8 @@ io.sockets.on('connection', function (socket) {
   socket.on('client-params-request', function(userAgent) {
     if(typeof calibrationData !== 'undefined') {
       var result = calibrationData[userAgent];
-      if(typeof result !== 'undefined' &&
-         typeof result.delay !== 'undefined' &&
-         typeof result.gain !== 'undefined') {
-        socket.emit('client-params', {delay : result.delay,
-                                      gain : result.gain});
+      if(typeof result !== 'undefined') {
+        socket.emit('client-params', result);
       }
     }
   });
@@ -124,18 +125,17 @@ io.sockets.on('connection', function (socket) {
 function click() {
   if(serverParams.active && serverParams.number !== 0) {
     serverParams.number --;
-     // broadcast
-    io.emit('click', {delay : serverParams.delay,
-                      gain : serverParams.gain,
-                      duration : serverParams.duration});
-  }
-
-  if(serverParams.active)
+    // set timeout as soon as possible
     if (serverParams.number !== 0) {
       clickTimeout = setTimeout(click, serverParams.period);
     } else {
       serverParams.active = false;
     }  
+     // broadcast
+    io.emit('click', {delay : serverParams.delay,
+                      gain : serverParams.gain,
+                      duration : serverParams.duration});
+  }
 
   // TODO: limit broadcast to control clients
   io.emit('server-params', serverParams);

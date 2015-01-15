@@ -16,8 +16,13 @@ if(localStorageEnabled) {
 // use values from server, with the same user agent 
 var clientParams = {
   active : false, // do not run by default (manual activation is needed for iOS)
-  delay : 0, // delay to compensate, in milliseconds
-  gain : 0, // gain to compensate, in dB (power)
+  output : 'internal', // 'internal' or 'external'
+  internal : { delay : 0, // delay to compensate, in milliseconds
+               gain : 0 // gain to compensate, in dB (power)
+          },
+  external : { delay : 0,
+               gain : 0
+             }
 };
 
 var clickParams = {
@@ -72,7 +77,7 @@ function makeAudioContext() {
 
   masterGain = audioContext.createGain();  
   // opposite to compensate client gain
-  masterGain.gain.value = dBToPow(-clientParams.gain);
+  masterGain.gain.value = dBToPow(-clientParams[clientParams.output].gain);
   masterGain.connect(audioContext.destination);
 
   generateClickBuffer(clickParams.duration);
@@ -93,43 +98,63 @@ function idIncrementValue(id, increment) {
 function updateClientParams() {
   var wasActive = clientParams.active;
   var isActive = false;
-  for(var key in clientParams) {
-    if(key === 'active') {
-      clientParams[key] = document.getElementById(key).checked;
+
+  // set output first, as it is used to dispatch the data
+  if(typeof clientParams !== 'undefined') {
+    // output changed
+    if(clientParams.output !== document.getElementById('output').value) {
+      clientParams.output = document.getElementById('output').value;
+      restoreFromLocalOrServer();
+    }
+    else {
+      clientParams.active = document.getElementById('active').checked;
       isActive = clientParams.active;
-      // active status is not stored
-    } else if(key !== 'undefined') {
-      clientParams[key] = document.getElementById(key).value;
+    
+      var params = ['delay', 'gain'];
+      for(var p in params) {
+        var key = params[p];
+        if(typeof key != 'undefined') {
+          clientParams[clientParams.output][key] =
+            document.getElementById(key).value;
+        }
+      }
       if(localStorageEnabled) {
         try {
-          localStorage[localStoragePrefix + key] = clientParams[key];
+          localStorage[localStoragePrefix + clientParams.output] =
+            JSON.stringify(clientParams[clientParams.output]);
         } catch (error) {
           console.log(error.message);
           localStorageEnabled = false;
         }
       }
+      
     }
+    
+    socket.emit('client-params-store', {userAgent : platform.ua,
+                                        internal : clientParams.internal,
+                                        external : clientParams.external});
   }
   
-  socket.emit('client-params-store', {userAgent : platform.ua,
-                                      delay : clientParams.delay,
-                                      gain : clientParams.gain});
-  
   // opposite to compensate client gain
-  masterGain.gain.value = dBToPow(-clientParams.gain);
+  masterGain.gain.value = dBToPow(-clientParams[clientParams.output].gain);
 
-  // click on activation (user-triggered sound is mandatory to init iOS web audio)
+  // click on activation
+  // (user-triggered sound is mandatory to init iOS web audio)
   if(isActive && ! wasActive) {
     playClick({gain : -10, delay : 0, duration : 100});
   }
 }
 
 function updateClientDisplay() {
-  for(var key in clientParams) {
-    if(key === 'active') {
-      document.getElementById(key).checked = clientParams[key];
-    } else if(key !== 'undefined') {
-      document.getElementById(key).value = clientParams[key];
+  if(typeof clientParams !== 'undefined') {
+    document.getElementById('output').value = clientParams.output;
+    document.getElementById('active').checked = clientParams.active;
+
+    var params = ['delay', 'gain'];
+    for(var p in params) {
+      var key = params[p];
+      document.getElementById(key).value =
+        clientParams[clientParams.output][key];
     }
   }    
 }
@@ -158,27 +183,29 @@ function playClick(params) {
   //                    params.duration * 0.001);
 
   // compensate client delay
-  bufferSource.start(now +
-                     (params.delay - clientParams.delay) * 0.001);
+  bufferSource.start(0.001 * (params.delay -
+                              clientParams[clientParams.output].delay));
 }
 
-function init() {
-  makeAudioContext();
-
+function restoreFromLocalOrServer() {
   // retrieve from local storage
   var localStorageUsed = false;
   if(localStorageEnabled) {
     for(var key in clientParams) {
       if(typeof localStorage[localStoragePrefix + key] !== 'undefined') {
         localStorageUsed = true;
-        clientParams[key] = localStorage[localStoragePrefix + key];
+        clientParams[key] = JSON.parse(localStorage[localStoragePrefix + key]);
       }
     }
+    updateClientDisplay();
   }
 
-  // update anyway (at least for page reload)
-  updateClientDisplay();
-  
+  if(! localStorageUsed) {
+    socket.emit('client-params-request', platform.ua);
+  }  
+}
+
+function init() {
   socket.on('client-params', function(params) {
     for(var key in params) {
       if(typeof params[key] !== 'undefined') {
@@ -188,9 +215,12 @@ function init() {
     updateClientDisplay();
   });
 
-  if(! localStorageUsed) {
-    socket.emit('client-params-request', platform.ua);
-  }
+  restoreFromLocalOrServer();
+
+  // update anyway (at least for page reload)  
+  updateClientDisplay();
+  
+  makeAudioContext();
 
   socket.on('click', function(params) {
     if(clientParams.active) {
