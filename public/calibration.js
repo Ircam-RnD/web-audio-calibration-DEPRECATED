@@ -13,12 +13,15 @@ if(localStorageEnabled) {
 
 // default parameters
 // restore local storage, if it exists, or
-// use values from server, with the same user agent 
+// use values from server, with the same user agent
+//
+// WARNING: clientParams values are the opposite of those in the interface
+//          (the interface sets the compensation)
 var clientParams = {
   active : false, // do not run by default (manual activation is needed for iOS)
   output : 'internal', // 'internal' or 'external'
-  internal : { delay : 0, // delay to compensate, in milliseconds
-               gain : 0 // gain to compensate, in dB (power)
+  internal : { delay : 0, // client delay, in milliseconds
+               gain : 0   // client gain, in dB (power)
           },
   external : { delay : 0,
                gain : 0
@@ -105,7 +108,9 @@ function updateClientParams() {
       var key = params[p];
       if(typeof key != 'undefined') {
         clientParams[clientParams.output][key] =
-          Number(document.getElementById(key).value);
+          // compensation is the opposite of intrinsic vale
+          // (compensation in the interface; intrisic in clientParams)
+          - Number(document.getElementById(key).value);
       }
     }
   }
@@ -127,7 +132,9 @@ function updateClientDisplay() {
       var key = params[p];
       if(typeof params[p] !== 'undefined') {
         document.getElementById(key).value =
-          clientParams[clientParams.output][key];
+          // compensation is the opposite of intrinsic vale
+          // (compensation in the interface; intrisic in clientParams)
+          - Number(clientParams[clientParams.output][key]);
       }
     }
   }    
