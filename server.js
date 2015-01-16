@@ -97,24 +97,24 @@ io.sockets.on('connection', function (socket) {
 
   socket.on('client-params-store', function(params) {
     if(typeof params.userAgent !== 'undefined' &&
-       typeof params.internal !== 'undefined' &&
-       typeof params.external !== 'undefined')
+       typeof params.output !== 'undefined' &&
+       typeof params.data !== 'undefined')
     {
       if(typeof calibrationData[params.userAgent] === 'undefined') {
         calibrationData[params.userAgent] = {};
       }
 
-      calibrationData[params.userAgent].internal = params.internal;
-      calibrationData[params.userAgent].external = params.external;
+      calibrationData[params.userAgent][params.output] = params.data;
       fs.writeFile(calibrationFile, JSON.stringify(calibrationData));
     }
   });
 
-  socket.on('client-params-request', function(userAgent) {
+  socket.on('client-params-request', function(params) {
     if(typeof calibrationData !== 'undefined') {
-      var result = calibrationData[userAgent];
-      if(typeof result !== 'undefined') {
-        socket.emit('client-params', result);
+      var result = calibrationData[params.userAgent];
+      if(typeof result !== 'undefined' &&
+        typeof result[params.output] !== 'undefined') {
+        socket.emit('client-params', result[params.output]);
       }
     }
   });

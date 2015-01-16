@@ -184,8 +184,8 @@ function storeLocalAndServer() {
       }
       socket.emit('client-params-store',
                   {userAgent : platform.ua,
-                   internal : clientParams.internal,
-                   external : clientParams.external});
+                   output : clientParams.output,
+                   data : clientParams[clientParams.output]});
   }
 }
 
@@ -207,7 +207,8 @@ function restoreFromLocalOrServer() {
   }
 
   if(! localStorageUsed) {
-    socket.emit('client-params-request', platform.ua);
+    socket.emit('client-params-request', {userAgent : platform.ua,
+                                          output : clientParams.output});
   }  
 }
 
@@ -215,7 +216,7 @@ function init() {
   socket.on('client-params', function(params) {
     for(var key in params) {
       if(typeof params[key] !== 'undefined') {
-        clientParams[key] = params[key];
+        clientParams[clientParams.output][key] = params[key];
       }
     }
     updateClientDisplay();
