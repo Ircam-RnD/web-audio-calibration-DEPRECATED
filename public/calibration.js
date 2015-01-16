@@ -32,7 +32,6 @@ var clickParams = {
 
 var audioContext;
 var clickBuffer;
-var masterGain;
 
 /** @private
     @return {number} An exponential gain value (1e-6 for -60dB) */
@@ -75,11 +74,6 @@ function makeAudioContext() {
     return;
   }
 
-  masterGain = audioContext.createGain();  
-  // opposite to compensate client gain
-  masterGain.gain.value = dBToPow(-clientParams[clientParams.output].gain);
-  masterGain.connect(audioContext.destination);
-
   generateClickBuffer(clickParams.duration);
 }
 
@@ -116,9 +110,6 @@ function updateClientParams() {
     }
   }
   
-  // opposite to compensate client gain
-  masterGain.gain.value = dBToPow(-clientParams[clientParams.output].gain);
-
   // click on activation
   // (user-triggered sound is mandatory to init iOS web audio)
   if(isActive && ! wasActive) {
@@ -152,8 +143,11 @@ function playClick(params) {
   console.log('click');
   
   var clickGain = audioContext.createGain();  
-  clickGain.gain.value = dBToPow(params.gain);
-  clickGain.connect(masterGain);
+
+  // opposite to compensate client gain
+  clickGain.gain.value = dBToPow(params.gain -
+                                 clientParams[clientParams.output].gain);
+  clickGain.connect(audioContext.destination);
   
   bufferSource = audioContext.createBufferSource();
   bufferSource.buffer = clickBuffer;
