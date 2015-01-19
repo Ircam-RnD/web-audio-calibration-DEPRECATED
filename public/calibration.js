@@ -220,6 +220,9 @@ function restoreFromLocalOrServer() {
 }
 
 function init() {
+  var userAgentId = document.getElementById('userAgent');
+  userAgentId.innerHTML = platform.ua;
+
   socket.on('client-params', function(params) {
     for(var key in params) {
       if(typeof params[key] !== 'undefined') {
