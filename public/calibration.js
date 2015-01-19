@@ -21,7 +21,7 @@ var clientParams = {
   active : false, // do not run by default (manual activation is needed for iOS)
   output : 'internal', // 'internal' or 'external'
   internal : { delay : 0, // client delay, in milliseconds
-               gain : 0   // client gain, in dB (power)
+               gain : 0   // client gain, in dB (linear)
           },
   external : { delay : 0,
                gain : 0
@@ -30,16 +30,16 @@ var clientParams = {
 
 var clickParams = {
   duration : 0.05, // milliseconds (2 samples at 44100 Hz)
-  gain : -10 // dB (for the noise part)
+  gain : -20 // linear dB (for the noise part)
 };
 
 var audioContext;
 var clickBuffer;
 
 /** @private
-    @return {number} An exponential gain value (1e-6 for -60dB) */
-var dBToPow = function(dBValue) {
-  return Math.pow(10, dBValue / 10);
+    @return {number} A linear gain value (1e-3 for -60dB) */
+var dBToLin = function(dBValue) {
+  return Math.pow(10, dBValue / 20);
 };
 
 /** 
@@ -59,7 +59,7 @@ function generateClickBuffer(duration) {
   data[1] = -1;
 
   // TODO: provide a seed
-  var g = dBToPow(clickParams.gain);
+  var g = dBToLin(clickParams.gain);
   for(var i = 2; i < length; i++) {
     data[i] = g * (Math.random() * 2 - 1);
   }
@@ -152,7 +152,7 @@ function playClick(params) {
   var clickGain = audioContext.createGain();  
 
   // opposite to compensate client gain
-  clickGain.gain.value = dBToPow(params.gain -
+  clickGain.gain.value = dBToLin(params.gain -
                                  clientParams[clientParams.output].gain);
   clickGain.connect(audioContext.destination);
   
