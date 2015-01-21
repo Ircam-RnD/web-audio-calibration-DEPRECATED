@@ -50,20 +50,16 @@ try {
   }
 }
 
-fs.readFileSync(calibrationFile, calibrationFileEncoding,
-                function(error, data) {
-                  if(error) {
-                    if(error.code === 'ENOENT') {
-                      console.log('Creating new calibration file: ' +
-                                  calibrationFile);
-                    } else {
-                      console.log('Error while reading calibration file: ' +
-                                  error);
-                    }
-                  } else {
-                    calibrationData = JSON.parse(data);
-                  }
-            });
+try {
+  var data = fs.readFileSync(calibrationFile, calibrationFileEncoding);
+  calibrationData = JSON.parse(data);
+} catch (error) {
+  if(error.code === 'ENOENT') {
+    console.log('Creating new calibration file: ' + calibrationFile);
+  } else {
+    console.log('Error while reading calibration file: ' + error);
+  }
+}
 calibrationData[pjson.name + '.version'] = pjson.version;
 
 var clickTimeout; // handle to clear timeout
