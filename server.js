@@ -6,6 +6,7 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
 var fs = require('fs');
 var path = require('path');
+var pjson = require('./package.json');
 
 server.listen(port, function() {
   console.log('Server listening at port %d', port);
@@ -49,7 +50,7 @@ try {
   }
 }
 
-fs.readFile(calibrationFile, calibrationFileEncoding,
+fs.readFileSync(calibrationFile, calibrationFileEncoding,
                 function(error, data) {
                   if(error) {
                     if(error.code === 'ENOENT') {
@@ -63,6 +64,7 @@ fs.readFile(calibrationFile, calibrationFileEncoding,
                     calibrationData = JSON.parse(data);
                   }
             });
+calibrationData[pjson.name + '.version'] = pjson.version;
 
 var clickTimeout; // handle to clear timeout
 
