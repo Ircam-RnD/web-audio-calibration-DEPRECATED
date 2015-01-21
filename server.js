@@ -104,7 +104,14 @@ io.sockets.on('connection', function (socket) {
         calibrationData[params.userAgent] = {};
       }
 
-      calibrationData[params.userAgent][params.output] = params.data;
+      if(typeof calibrationData[params.userAgent][params.output] == 'undefined') {
+        calibrationData[params.userAgent][params.output] = [];
+      }
+
+      var date = new Date();
+      calibrationData[params.userAgent][params.output].
+        push([date.toISOString(), params.data]);
+
       fs.writeFile(calibrationFile, JSON.stringify(calibrationData));
     }
   });
@@ -113,8 +120,9 @@ io.sockets.on('connection', function (socket) {
     if(typeof calibrationData !== 'undefined') {
       var result = calibrationData[params.userAgent];
       if(typeof result !== 'undefined' &&
-        typeof result[params.output] !== 'undefined') {
-        socket.emit('client-params', result[params.output]);
+         typeof result[params.output] !== 'undefined') {
+        // retrieve the last value
+        socket.emit('client-params', result[params.output].slice(-1)[0][1]);
       }
     }
   });
