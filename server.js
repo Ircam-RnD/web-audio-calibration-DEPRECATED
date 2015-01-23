@@ -110,6 +110,11 @@ io.sockets.on('connection', function (socket) {
       calibrationData[params.userAgent][params.output].
         push([date.toISOString(), params.data]);
 
+      console.log(date.toISOString());
+      console.log(params.userAgent);
+      console.log(params.output);
+      console.log(params.data);
+      
       fs.writeFile(calibrationFile, JSON.stringify(calibrationData));
     }
   });
