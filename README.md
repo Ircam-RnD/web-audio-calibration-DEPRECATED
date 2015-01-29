@@ -30,9 +30,9 @@ the same type to the reference.)
 In any case, one device's speaker must point toward one ear, both devices
 at the same distance.
 
-First we compensate the delay using a click signal
-(time of signal is 0.05 ms). It may change depending on the server, the wifi
-connection, etc. We manually adjust the delay, 
+First we compensate the delay using a click signal (time of signal is
+0.05 ms). It may change depending on the server, the wifi connection,
+etc. We manually adjust the delay, to compensate the reference device.
 
 Then we adjust the gain, using a white noise (time of signal is 500
 ms).
@@ -73,6 +73,10 @@ Gain may occur due to:
 - client hardware
 - distance from the speaker
 - listener
+
+As a first result, the measurement seems reproducible, and the
+devices exhibit very different characteristics. Across the extrema,
+there is 400 ms and 30 dB.
 
 ## Next steps ##
 
