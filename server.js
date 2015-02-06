@@ -13,7 +13,10 @@ server.listen(port, function() {
 });
 
 app.set('view engine', 'jade');
+
 app.use(express.static(path.join(__dirname, '/public')));
+app.use('/platform.js',
+        express.static(path.join(__dirname, '/node_modules/platform/platform.js')));
 
 app.get('/', function(req, res) {
   res.render('calibration');
@@ -31,6 +34,16 @@ var serverParams = {
   period : 1, // seconds
   number : -1, // -1 for infinite, > 0 for finite count
   duration : (2 / 44100) // seconds (0.05 ms is 2 samples at 44100 Hz)
+};
+
+var metroParams = {
+  nextClick : 0, // absolute time, in seconds
+};
+
+var schedulerParams = {
+  tickDuration : 0.025, // seconds
+  lookAhead : 0.150, // seconds
+  queue : [ [] ], // 
 };
 
 var calibrationPath = __dirname + '/data';
