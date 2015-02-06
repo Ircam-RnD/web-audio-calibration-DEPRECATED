@@ -26,11 +26,11 @@ app.get('/ctl', function(req, res) {
 // public parameters
 var serverParams = {
   active : true, // run by default
-  delay : 200, // millisecond
+  delay : 0.200, // seconds
   gain : 0, // dB
-  period : 1000, // milliseconds
+  period : 1, // seconds
   number : -1, // -1 for infinite, > 0 for finite count
-  duration : 0.05 // milliseconds (0.05 ms is 2 samples at 44100 Hz)
+  duration : (2 / 44100) // seconds (0.05 ms is 2 samples at 44100 Hz)
 };
 
 var calibrationPath = __dirname + '/data';
@@ -65,6 +65,11 @@ calibrationData[pjson.name + '.version'] = pjson.version;
 var clickTimeout; // handle to clear timeout
 
 io.sockets.on('connection', function (socket) {
+
+  socket.on('sync-request', function(timeRequestSend) {
+    socket.volatile.emit('sync-reply', [timeRequestSend, Date.now() * 0.001]);
+  });
+  
   // brodacst to initialise controls
   io.emit('server-params', serverParams);
 
@@ -138,7 +143,7 @@ function click() {
     serverParams.number --;
     // set timeout as soon as possible
     if (serverParams.number !== 0) {
-      clickTimeout = setTimeout(click, serverParams.period);
+      clickTimeout = setTimeout(click, serverParams.period * 1000);
     } else {
       serverParams.active = false;
     }  

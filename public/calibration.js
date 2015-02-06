@@ -20,7 +20,7 @@ if(localStorageEnabled) {
 var clientParams = {
   audioActive : false, // do not run by default (manual activation is needed for iOS)
   output : 'internal', // 'internal' or 'external'
-  internal : { delay : 0, // client delay, in milliseconds
+  internal : { delay : 0, // client delay, in seconds
                gain : 0   // client gain, in dB (linear)
           },
   external : { delay : 0,
@@ -29,8 +29,21 @@ var clientParams = {
 };
 
 var clickParams = {
-  duration : 0.05, // milliseconds (2 samples at 44100 Hz)
+  duration : (2 / 44100), // seconds (2 samples at 44100 Hz)
   gain : -20 // linear dB (for the noise part)
+};
+
+var syncParams = {
+  intervalInit : 0.2, // in seconds, to bootstrap
+  intervalAlive : 10, // in seconds
+  interval : 1, // in seconds, current
+  offset : 0, // current offset, in seconds
+  // 2D circular buffer: round-trip duration, and clock offset, in seconds
+  data : [ [] ], 
+  dataNext : 0, // next index in circular buffer
+  dataLength : 20, // logical size of circular buffer
+  dataBest : 4, // calculate offset only on quickest roundtrip time
+  timeoutID : 0, // to clear timeout
 };
 
 var audioContext;
@@ -48,7 +61,7 @@ var dBToLin = function(dBValue) {
 function generateClickBuffer(duration) {
   var channels = 1;
   
-  var length = Math.max(2, 0.001 * duration * audioContext.sampleRate);
+  var length = Math.max(2, duration * audioContext.sampleRate);
   var buffer = audioContext.createBuffer(channels, length,
                                          audioContext.sampleRate);
   // buffer.copyToChannel(array, 0); // error on Chrome?
@@ -107,10 +120,14 @@ function updateClientParams() {
     for(var p in params) {
       var key = params[p];
       if(typeof key !== 'undefined') {
+        var element = document.getElementById(key);
         clientParams[clientParams.output][key] =
           // compensation is the opposite of intrinsic vale
           // (compensation in the interface; intrisic in clientParams)
-          - Number(document.getElementById(key).value);
+          - Number(element.value);
+        if(element.className === 'milliseconds') {
+          clientParams[clientParams.output][key] *= 0.001;
+        }
       }
     }
   }
@@ -118,7 +135,7 @@ function updateClientParams() {
   // click on activation
   // (user-triggered sound is mandatory to init iOS web audio)
   if(isAudioActive && ! wasAudioActive) {
-    playClick({gain : -10, delay : 0, duration : 100});
+    playClick({gain : -10, delay : 0, duration : 0.100});
   }
 }
 
@@ -131,10 +148,14 @@ function updateClientDisplay() {
     for(var p in params) {
       var key = params[p];
       if(typeof params[p] !== 'undefined') {
-        document.getElementById(key).value =
+        var element = document.getElementById(key);
+        element.value =
           // compensation is the opposite of intrinsic vale
           // (compensation in the interface; intrisic in clientParams)
           - Number(clientParams[clientParams.output][key]);
+        if(element.className === 'milliseconds') {
+          element.value *= 1000;
+        }
       }
     }
   }    
@@ -161,16 +182,11 @@ function playClick(params) {
   bufferSource.connect(clickGain);
 
   // duration parameter ignored? on Safari (7.1.2), Firefox (34)
-  // bufferSource.start(now +
-  //                    (params.delay - clientParams.delay) * 0.001,
-  //                    0,
-  //                    params.duration * 0.001);
 
   // compensate client delay
   bufferSource.start(now +
-                     Math.max(0, 0.001 *
-                              (params.delay -
-                               clientParams[clientParams.output].delay)));
+                     Math.max(params.delay -
+                              clientParams[clientParams.output].delay) );
 }
 
 function validate() {
@@ -219,10 +235,77 @@ function restoreFromLocalOrServer() {
   }  
 }
 
+var sync = function sync() {
+  clearTimeout(syncParams.timeoutID);
+
+  if(syncParams.data.length < syncParams.dataLength) {
+    syncParams.interval = syncParams.intervalInit;
+  } else {
+    syncParams.interval = syncParams.intervalAlive;    
+  }
+  
+  syncParams.timeoutID = setTimeout(sync, syncParams.interval * 1000);
+  socket.emit('sync-request', Date.now() * 0.001);
+};
+
+var syncInit = function(socket) {
+  socket.on('sync-reply', function(params) {
+    // (from sntp)
+    // Timestamp Name          ID   When Generated
+    // ------------------------------------------------------------
+    // Originate Timestamp     T1   time request sent by client
+    // Receive Timestamp       T2   time request received by server
+    // Transmit Timestamp      T3   time reply sent by server
+    // Destination Timestamp   T4   time reply received by client
+    //
+    // The roundtrip duration d and system clock offset t are defined as:
+    // d = (T4 - T1) - (T3 - T2)
+    // t = ((T2 - T1) + (T3 - T4)) / 2
+    // Then:
+    // d = T4 - T1
+    // t = T2 - (T1 + T4) / 2
+    
+    var T1 = params[0]; // time request sent by client
+    var T2 = params[1]; // time request received by server 
+    // var T3 = T2; // time reply sent by server (no time-stamp, yet)
+    var T4 = Date.now() * 0.001; // time reply received by client
+
+    var roundtrip = T4 - T1;
+    var offset = T2 - (T1 + T4) * 0.5;
+
+    syncParams.data[syncParams.dataNext] = [roundtrip, offset];
+    syncParams.dataNext = (syncParams.dataNext + 1) %
+      syncParams.dataLength;
+
+    if(syncParams.data.length >= syncParams.dataLength) {
+      // keep only the running quickest roundtrips
+      var quickest = syncParams.data.slice(0).sort().
+          slice(0, syncParams.dataBest);
+
+      var offsetMean = 0;
+      for(var q = 0; q < syncParams.dataBest; ++q) {
+        offsetMean += quickest[q][1];
+      }
+      offsetMean /= syncParams.dataBest;
+      syncParams.offset = offsetMean;
+    }
+    
+  }); // socket
+
+  sync();
+};
+
+var getSyncOffset = function() {
+  return syncParams.offset;
+};
+
+
 function init() {
   var userAgentId = document.getElementById('userAgent');
   userAgentId.innerHTML = platform.ua;
-
+  
+  syncInit(socket);
+  
   socket.on('client-params', function(params) {
     for(var key in params) {
       if(typeof params[key] !== 'undefined') {

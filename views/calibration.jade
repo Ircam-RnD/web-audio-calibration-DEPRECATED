@@ -12,10 +12,12 @@ html
     p
       label
         | Active 
-        input(id="audioActive", onchange="updateClientParams()", type="checkbox", value="0")
+        input(id="audioActive", onchange="updateClientParams()",
+          type="checkbox", value="0")
     p
       | Delay compensation 
-      input(id="delay", onchange="updateClientParams()", type="number", value="0", min="-20", max="0", step="10")
+      input(id="delay", onchange="updateClientParams()", type="number",
+        value="0", min="-20", max="0", step="10", class="milliseconds")
       |  milliseconds
       br
       button(onclick="idIncrementValue('delay', -50)") -50
@@ -37,7 +39,8 @@ html
       button(onclick="idIncrementValue('delay', +50)") +50 
     p
       | Gain compensation 
-      input(id="gain", onchange="updateClientParams()", type="number", value="0", min="-30", max="30", step="1")
+      input(id="gain", onchange="updateClientParams()", type="number",
+        value="0", min="-30", max="30", step="1")
       |  dB
       br
       button(onclick="idIncrementValue('gain', -5)") -5 

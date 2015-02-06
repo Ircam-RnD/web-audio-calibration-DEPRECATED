@@ -17,14 +17,18 @@ function idIncrementValue(id, increment) {
 // on connect, local update (value and display) 
 socket.on('server-params', function(params) {
   for(var key in params) {
+    var element = document.getElementById(key);
     if(key === 'active') {
       // update on change only, to allow for editting
       if(serverParams[key] !== params[key]) {
-        document.getElementById(key).checked = params[key];
+        element.checked = params[key];
       }
     } else {
       if(serverParams[key] !== params[key]) {
-        document.getElementById(key).value = params[key];
+        element.value = params[key];
+        if(element.className === 'milliseconds') {
+          element.value *= 1000;
+        }
       }
     }
     serverParams[key] = params[key];
@@ -35,14 +39,14 @@ function updateServerParams() {
   if(serverParams !== {}) {
     var changed = false;
     for(var key in serverParams) {
+      var element = document.getElementById(key);
       if(key === 'active') {
-        changed = changed ||
-          (serverParams[key] !== document.getElementById(key).checked);
-        serverParams[key] = document.getElementById(key).checked;      
+        serverParams[key] = element.checked;      
       } else {
-        changed == changed ||
-          (serverParams[key] !== document.getElementById(key).value);
-        serverParams[key] = Number(document.getElementById(key).value);
+        serverParams[key] = Number(element.value);
+        if(element.className ==='milliseconds') {
+          serverParams[key] *= 0.001;
+        }
       }
     }    
     socket.emit('server-params', serverParams);
