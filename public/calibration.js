@@ -18,7 +18,7 @@ if(localStorageEnabled) {
 // WARNING: clientParams values are the opposite of those in the interface
 //          (the interface sets the compensation)
 var clientParams = {
-  active : false, // do not run by default (manual activation is needed for iOS)
+  audioActive : false, // do not run by default (manual activation is needed for iOS)
   output : 'internal', // 'internal' or 'external'
   internal : { delay : 0, // client delay, in milliseconds
                gain : 0   // client gain, in dB (linear)
@@ -93,20 +93,20 @@ function idIncrementValue(id, increment) {
 }
 
 function updateClientParams() {
-  var wasActive = clientParams.active;
-  var isActive = false;
+  var wasAudioActive = clientParams.audioActive;
+  var isAudioActive = false;
 
   // set output first, as it is used to dispatch the data
   if(typeof clientParams !== 'undefined') {
     // output changed
     clientParams.output = document.getElementById('output').value;
-    clientParams.active = document.getElementById('active').checked;
-    isActive = clientParams.active;
+    clientParams.audioActive = document.getElementById('audioActive').checked;
+    isAudioActive = clientParams.audioActive;
     
     var params = ['delay', 'gain'];
     for(var p in params) {
       var key = params[p];
-      if(typeof key != 'undefined') {
+      if(typeof key !== 'undefined') {
         clientParams[clientParams.output][key] =
           // compensation is the opposite of intrinsic vale
           // (compensation in the interface; intrisic in clientParams)
@@ -117,7 +117,7 @@ function updateClientParams() {
   
   // click on activation
   // (user-triggered sound is mandatory to init iOS web audio)
-  if(isActive && ! wasActive) {
+  if(isAudioActive && ! wasAudioActive) {
     playClick({gain : -10, delay : 0, duration : 100});
   }
 }
@@ -125,7 +125,7 @@ function updateClientParams() {
 function updateClientDisplay() {
   if(typeof clientParams !== 'undefined') {
     document.getElementById('output').value = clientParams.output;
-    document.getElementById('active').checked = clientParams.active;
+    document.getElementById('audioActive').checked = clientParams.audioActive;
 
     var params = ['delay', 'gain'];
     for(var p in params) {
@@ -240,7 +240,7 @@ function init() {
   makeAudioContext();
 
   socket.on('click', function(params) {
-    if(clientParams.active) {
+    if(clientParams.audioActive) {
       playClick(params);
     }
   });
