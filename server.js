@@ -37,13 +37,13 @@ var serverParams = {
 };
 
 var metroParams = {
-  nextClick : 0, // absolute time, in seconds
+  nextClick : 0 // absolute time, in seconds
 };
 
 var schedulerParams = {
   tickDuration : 0.025, // seconds
   lookAhead : 0.150, // seconds
-  queue : [ [] ], // 
+  queue : [ [] ] // 
 };
 
 var calibrationPath = __dirname + '/data';
@@ -75,12 +75,21 @@ try {
 }
 calibrationData[pjson.name + '.version'] = pjson.version;
 
+// should be monotonic, and in seconds
+function getLocalTime() {
+  var time = process.hrtime();
+  return time[0] + time[1] * 1e-9;
+}
+
 var clickTimeout; // handle to clear timeout
 
 io.sockets.on('connection', function (socket) {
 
   socket.on('sync-request', function(timeRequestSend) {
-    socket.volatile.emit('sync-reply', [timeRequestSend, Date.now() * 0.001]);
+    var timeRequestArrived = getLocalTime();
+    socket.volatile.emit('sync-reply',
+                         [timeRequestSend, timeRequestArrived,
+                          getLocalTime() ] );
   });
   
   // brodacst to initialise controls
@@ -91,9 +100,11 @@ io.sockets.on('connection', function (socket) {
     var activate = !serverParams.active && params.active;
 
     for(var key in params) {
-      serverParamsChanged = serverParamsChanged ||
-        (serverParams[key] === params[key]);
-      serverParams[key] = params[key];
+      if(params.hasOwnProperty(key)) {
+        serverParamsChanged = serverParamsChanged ||
+          (serverParams[key] === params[key]);
+        serverParams[key] = params[key];
+      }
     }
     
     if(!serverParams.active || serverParams.number === 0) {
@@ -120,7 +131,7 @@ io.sockets.on('connection', function (socket) {
         calibrationData[params.userAgent] = {};
       }
 
-      if(typeof calibrationData[params.userAgent][params.output] == 'undefined') {
+      if(typeof calibrationData[params.userAgent][params.output] === 'undefined') {
         calibrationData[params.userAgent][params.output] = [];
       }
 

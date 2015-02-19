@@ -1,3 +1,5 @@
+/*global platform, io */
+
 var socket = io.connect();
 
 var localStoragePrefix = 'web-audio-calibration.';
@@ -43,11 +45,15 @@ var syncParams = {
   dataNext : 0, // next index in circular buffer
   dataLength : 20, // logical size of circular buffer
   dataBest : 4, // calculate offset only on quickest roundtrip time
-  timeoutID : 0, // to clear timeout
+  timeoutID : 0 // to clear timeout
 };
 
 var audioContext;
 var clickBuffer;
+
+function getLocalTime() {
+  return audioContext.currentTime; 
+}
 
 /** @private
     @return {number} A linear gain value (1e-3 for -60dB) */
@@ -56,7 +62,7 @@ var dBToLin = function(dBValue) {
 };
 
 /** 
- * @param duration in milliseconds (minimum will be 2 samples anyway)
+ * @param {Number} duration in milliseconds (minimum will be 2 samples anyway)
  */
 function generateClickBuffer(duration) {
   var channels = 1;
@@ -167,7 +173,7 @@ function playClick(params) {
     generateClickBuffer(clickParams.duration);
   }
   
-  var now = audioContext.currentTime;
+  var now = getLocalTime();
   console.log('click');
   
   var clickGain = audioContext.createGain();  
@@ -177,7 +183,7 @@ function playClick(params) {
                                  clientParams[clientParams.output].gain);
   clickGain.connect(audioContext.destination);
   
-  bufferSource = audioContext.createBufferSource();
+  var bufferSource = audioContext.createBufferSource();
   bufferSource.buffer = clickBuffer;
   bufferSource.connect(clickGain);
 
@@ -245,7 +251,7 @@ var sync = function sync() {
   }
   
   syncParams.timeoutID = setTimeout(sync, syncParams.interval * 1000);
-  socket.emit('sync-request', Date.now() * 0.001);
+  socket.emit('sync-request', getLocalTime() );
 };
 
 var syncInit = function(socket) {
@@ -261,17 +267,14 @@ var syncInit = function(socket) {
     // The roundtrip duration d and system clock offset t are defined as:
     // d = (T4 - T1) - (T3 - T2)
     // t = ((T2 - T1) + (T3 - T4)) / 2
-    // Then:
-    // d = T4 - T1
-    // t = T2 - (T1 + T4) / 2
     
     var T1 = params[0]; // time request sent by client
     var T2 = params[1]; // time request received by server 
-    // var T3 = T2; // time reply sent by server (no time-stamp, yet)
-    var T4 = Date.now() * 0.001; // time reply received by client
+    var T3 = params[2]; // time reply sent by server
+    var T4 = getLocalTime(); // time reply received by client
 
-    var roundtrip = T4 - T1;
-    var offset = T2 - (T1 + T4) * 0.5;
+    var roundtrip = T4 - T1 - (T3 - T2);
+    var offset = (T2 - T1) + (T3 - T4) * 0.5;
 
     syncParams.data[syncParams.dataNext] = [roundtrip, offset];
     syncParams.dataNext = (syncParams.dataNext + 1) %
@@ -301,6 +304,8 @@ var getSyncOffset = function() {
 
 
 function init() {
+  makeAudioContext();
+
   var userAgentId = document.getElementById('userAgent');
   userAgentId.innerHTML = platform.ua;
   
@@ -320,8 +325,6 @@ function init() {
   // update anyway (at least for page reload)  
   updateClientDisplay();
   
-  makeAudioContext();
-
   socket.on('click', function(params) {
     if(clientParams.audioActive) {
       playClick(params);
