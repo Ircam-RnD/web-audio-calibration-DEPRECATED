@@ -29,7 +29,7 @@ app.get('/ctl', function(req, res) {
 // public parameters
 var serverParams = {
   active : true, // run by default
-  delay : 0.200, // seconds
+  delay : 0.500, // seconds
   gain : 0, // dB
   period : 1, // seconds
   number : -1, // -1 for infinite, > 0 for finite count
@@ -37,13 +37,10 @@ var serverParams = {
 };
 
 var metroParams = {
-  nextClick : 0 // absolute time, in seconds
-};
-
-var schedulerParams = {
-  tickDuration : 0.025, // seconds
-  lookAhead : 0.150, // seconds
-  queue : [ [] ] // 
+  timeoutID : 0, // to cancel setTimeout
+  nextClick : 0, // absolute time, in seconds
+  period : 1, // in seconds
+  tickDuration : 0.025 // seconds
 };
 
 var calibrationPath = __dirname + '/data';
@@ -75,21 +72,30 @@ try {
 }
 calibrationData[pjson.name + '.version'] = pjson.version;
 
-// should be monotonic, and in seconds
-function getLocalTime() {
-  var time = process.hrtime();
-  return time[0] + time[1] * 1e-9;
+// Must be monotonic, and in seconds
+function getLocalTime(syncTime) {
+  if(typeof syncTime !== 'undefined') {
+    // Master time is local: no conversion
+    return syncTime;
+  } else {
+    // Read local clock
+    var time = process.hrtime();
+    return time[0] + time[1] * 1e-9;
+  }
 }
 
-var clickTimeout; // handle to clear timeout
+function getSyncTime(LocalTime) {
+  // sync time is local, here
+  return getLocalTime(LocalTime);
+}
 
 io.sockets.on('connection', function (socket) {
 
   socket.on('sync-request', function(timeRequestSend) {
     var timeRequestArrived = getLocalTime();
-    socket.volatile.emit('sync-reply',
-                         [timeRequestSend, timeRequestArrived,
-                          getLocalTime() ] );
+    socket.emit('sync-reply',
+                [timeRequestSend, timeRequestArrived,
+                 getLocalTime() ] );
   });
   
   // brodacst to initialise controls
@@ -109,7 +115,7 @@ io.sockets.on('connection', function (socket) {
     
     if(!serverParams.active || serverParams.number === 0) {
       serverParams.active = false;
-      clearTimeout(clickTimeout);
+      clearTimeout(metroParams.timeoutID);
       serverParamsChanged = true;
     } else if(activate) {
       click();
@@ -162,21 +168,56 @@ io.sockets.on('connection', function (socket) {
 }); // io.sockets.on('connection' ...
 
 
+function clickEmit(nextClick) {
+  // broadcast
+  io.emit('click', {position : nextClick,
+                    gain : serverParams.gain,
+                    duration : serverParams.duration});
+}
+
 function click() {
   if(serverParams.active && serverParams.number !== 0) {
-    serverParams.number --;
-    // set timeout as soon as possible
+
+    clearTimeout(metroParams.timeoutID);
+    debugger;
+    var now = getSyncTime();
+
+    if(metroParams.nextClick < now + serverParams.delay) {
+      -- serverParams.number;
+
+      // too late
+      if(metroParams.nextClick < now) {
+        console.log('too late by ' + (now -metroParams.nextClick) + ' s');
+        // good restart from now
+        metroParams.nextClick +=
+          Math.ceil((now - metroParams.nextClick) / metroParams.period) *
+          metroParams.period;
+
+        // next one might be soon: look ahead
+        if(metroParams.nextClick < now + serverParams.delay) {
+          -- serverParams.number;
+          console.log('soon in ' + (metroParams.nextClick - now) + ' s');
+          clickEmit(metroParams.nextClick);
+          metroParams.nextClick += metroParams.period;
+        }
+      } else {
+        console.log('trigger ' + metroParams.nextClick +
+                    ' (in ' + (metroParams.nextClick - now) + ' s)');
+        clickEmit(metroParams.nextClick);
+        metroParams.nextClick += metroParams.period;
+      }
+      
+      
+    } // within look-ahead
+
+    // set new timeout
     if (serverParams.number !== 0) {
-      clickTimeout = setTimeout(click, serverParams.period * 1000);
+      metroParams.timeoutID = setTimeout(click, metroParams.tickDuration * 1000);
     } else {
       serverParams.active = false;
     }  
-     // broadcast
-    io.emit('click', {delay : serverParams.delay,
-                      gain : serverParams.gain,
-                      duration : serverParams.duration});
   }
-
+  
   // TODO: limit broadcast to control clients
   io.emit('server-params', serverParams);
 }

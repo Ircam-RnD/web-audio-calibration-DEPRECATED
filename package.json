@@ -1,6 +1,6 @@
 {
   "name": "web-audio-calibration",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "web audio calibration across devices (gain and delay)",
   "scripts": {
     "start": "node server.js"

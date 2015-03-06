@@ -1,4 +1,4 @@
-/*global platform, io */
+/*global platform, io, localStorage */
 
 var socket = io.connect();
 
@@ -51,8 +51,22 @@ var syncParams = {
 var audioContext;
 var clickBuffer;
 
-function getLocalTime() {
-  return audioContext.currentTime; 
+function getLocalTime(syncTime) {
+  if(typeof syncTime !== 'undefined') {
+    // conversion
+    return syncTime - syncParams.offset;
+  } else {
+    // read the local clock. Must be monotonic, and in seconds
+    return audioContext.currentTime;
+  }
+}
+
+function getSyncTime(localTime) {
+  if(typeof localTime === 'undefined') {
+    localTime = getLocalTime();
+  }
+  // always convert
+  return localTime + syncParams.offset;
 }
 
 /** @private
@@ -141,7 +155,7 @@ function updateClientParams() {
   // click on activation
   // (user-triggered sound is mandatory to init iOS web audio)
   if(isAudioActive && ! wasAudioActive) {
-    playClick({gain : -10, delay : 0, duration : 0.100});
+    playClick({position : 0, gain : -10, duration : 0.100});
   }
 }
 
@@ -173,9 +187,6 @@ function playClick(params) {
     generateClickBuffer(clickParams.duration);
   }
   
-  var now = getLocalTime();
-  console.log('click');
-  
   var clickGain = audioContext.createGain();  
 
   // opposite to compensate client gain
@@ -190,9 +201,14 @@ function playClick(params) {
   // duration parameter ignored? on Safari (7.1.2), Firefox (34)
 
   // compensate client delay
-  bufferSource.start(now +
-                     Math.max(params.delay -
-                              clientParams[clientParams.output].delay) );
+  var localTime = Math.max(0, getLocalTime(params.position) -
+                           clientParams[clientParams.output].delay); 
+  console.log('click at ' + localTime +
+              ' (syncTime ' + params.position + ' )' +
+              ' (in ' + (localTime - getLocalTime()) + ' s)');
+
+  // compensate client delay
+  bufferSource.start(localTime);
 }
 
 function validate() {
@@ -250,8 +266,9 @@ var sync = function sync() {
     syncParams.interval = syncParams.intervalAlive;    
   }
   
-  syncParams.timeoutID = setTimeout(sync, syncParams.interval * 1000);
-  socket.emit('sync-request', getLocalTime() );
+  var localTime =  getLocalTime();
+  console.log("sync_request at local time " + localTime);
+  socket.emit('sync-request', localTime);
 };
 
 var syncInit = function(socket) {
@@ -267,14 +284,19 @@ var syncInit = function(socket) {
     // The roundtrip duration d and system clock offset t are defined as:
     // d = (T4 - T1) - (T3 - T2)
     // t = ((T2 - T1) + (T3 - T4)) / 2
+
     
     var T1 = params[0]; // time request sent by client
     var T2 = params[1]; // time request received by server 
     var T3 = params[2]; // time reply sent by server
     var T4 = getLocalTime(); // time reply received by client
 
-    var roundtrip = T4 - T1 - (T3 - T2);
-    var offset = (T2 - T1) + (T3 - T4) * 0.5;
+    console.log('sync-reply: ' + T1 + '; ' + T2  + '; ' + T3 + '; ' + T4);
+
+    // localTime may not be precise enough, then T4 === T1
+    var roundtrip = Math.max(0, (T4 - T1) - (T3 - T2) );
+    console.log("roundtrip = ", roundtrip);
+    var offset = ((T2 - T1) + (T3 - T4)) * 0.5;
 
     syncParams.data[syncParams.dataNext] = [roundtrip, offset];
     syncParams.dataNext = (syncParams.dataNext + 1) %
@@ -290,9 +312,13 @@ var syncInit = function(socket) {
         offsetMean += quickest[q][1];
       }
       offsetMean /= syncParams.dataBest;
+
+      console.log('offset = ' + offsetMean +
+                  ' (delta = ' + (offsetMean - syncParams.offset) + ')');
       syncParams.offset = offsetMean;
     }
     
+    syncParams.timeoutID = setTimeout(sync, syncParams.interval * 1000);
   }); // socket
 
   sync();
