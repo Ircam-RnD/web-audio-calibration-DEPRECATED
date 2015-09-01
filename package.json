@@ -1,14 +1,14 @@
 {
   "name": "web-audio-calibration",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "web audio calibration across devices (gain and delay)",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "*",
-    "jade": "*",
-    "platform": "*",
-    "socket.io": "*"
+    "express": "^4.12.3",
+    "jade": "^1.9.2",
+    "platform": "^1.3.0",
+    "socket.io": "^1.3.5"
   }
 }

@@ -1,3 +1,19 @@
+___
+Please note that this repository is deprecated
+==============================================
+
+Please see
+<https://github.com/collective-soundworks/soundworks-calibration> for
+an updated version. It uses a synchronisation scheme that allows to
+schedule events in the future, in order to compensate some delays,
+from the server to the client's Web Audio API. Then, the software, and
+hardware, delays on the client still need to be (manually) compensated.
+
+The values related to the relative levels should still be valid,
+though.
+
+___
+
 web-audio-calibration
 =====================
 
